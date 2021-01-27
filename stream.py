@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import operator
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -7,11 +10,11 @@ class Stream():
     first: Any
     compute_fun: Callable
     empty: bool = False
-    ret: Any = None
+    ret: Stream = None
     computed: bool = False
 
     @property
-    def next(self) -> Any:
+    def next(self) -> Stream:
         assert not self.empty
         if not self.computed:
             self.ret = self.compute_fun()
@@ -59,7 +62,7 @@ def make_int_stream(start: int=0) -> Stream:
 
 def make_enum_int(low: int, high: int) -> Stream:
     def compute() -> Stream:
-        if low > high:
+        if low >= high:
             return Stream(low, compute, empty=True)
         else:
             return make_enum_int(low+1, high)
@@ -70,27 +73,46 @@ def make_enum_int(low: int, high: int) -> Stream:
 def stream_map(stream: Stream, proc: Callable) -> Stream:
     if stream.empty:
         return stream
-    def compute():
+    def compute() -> Stream:
         return stream_map(stream.next, proc)
     return Stream(proc(stream.first), compute)
 
 
-def stream_filter(stream: Stream, proc: Callable):
+def stream_filter(stream: Stream, proc: Callable) -> Stream:
     if stream.empty:
         return stream
-    def compute():
+    def compute() -> Stream:
         return stream_filter(stream.next, proc)
     if proc(stream.first):
         return Stream(stream.first, compute)
     return compute()
 
 
-b = make_enum_int(10, 100)
+# def stream_iterall(stream: Stream) -> Stream:
+#     if stream.empty:
+#         return stream
+#     def com
+
+
+def stream_reduce(stream: Stream, proc: Callable) -> Any:
+    if stream.empty:
+        return stream
+    return stream_reduce_help(stream.next, proc, stream.first)
+
+
+def stream_reduce_help(stream: Stream, proc: Callable, ret: Any) -> Any:
+    if stream.empty:
+        return ret
+    return stream_reduce_help(stream.next, proc, proc(ret, stream.first))
+
+
+b = make_enum_int(0, 2)
 # print(stream_ref(a(), 5))
 # x = make_int_stream()
 # print(stream_ref(x, 5))
 # print(stream_ref(b, 155))
 # print(stream_ref(b, 155))
-
-x = stream_filter(b, lambda i: i>50)
-print(x.first)
+y = stream_reduce(b, operator.add)
+print(y)
+# x = stream_filter(b, lambda i: i>50)
+# print(x.first)
