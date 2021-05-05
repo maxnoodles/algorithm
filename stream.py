@@ -12,6 +12,8 @@ class Stream():
     empty: bool = False
     ret: Stream = None
     computed: bool = False
+    args: list = None
+    kwargs: dict = None
 
     @property
     def next(self) -> Stream:
@@ -41,10 +43,34 @@ def stream_ref(stream: Stream, n: int) -> Any:
 
 
 
-def make_int_stream(start: int=0) -> Stream:
+def batch_make_int_stream(start: int=0, step: int=10):
+    ret = list(range(start, start + step))
     def compute() -> Stream:
-        return make_int_stream(start+1)
-    return Stream(start, compute)
+        return batch_make_int_stream(start+step, step)
+    return Stream(ret, compute)
+
+
+
+# def make_int_stream(start: int=0) -> Stream:
+#     batch_stream = batch_make_int_stream(start)
+#     def compute() -> Stream:
+#         if batch_stream.first:
+#             return Stream(batch_stream.first.pop(0), compute)
+#         return make_int_stream(start+1)
+#     return Stream(batch_stream.first.pop(0), compute)
+
+
+def make_int_stream(start: int=0) -> Stream:
+    batch_stream = batch_make_int_stream(start)
+    return make_int_stream_help(batch_stream)
+
+
+def make_int_stream_help(batch_stream) -> Stream:
+    def compute() -> Stream:
+        if batch_stream.first:
+            return Stream(batch_stream.first.pop(0), compute)
+        return make_int_stream_help(batch_stream.next)
+    return Stream(batch_stream.first.pop(0), compute)
 
 
 # def st(func):
@@ -69,6 +95,12 @@ def make_enum_int(low: int, high: int) -> Stream:
     return Stream(low, compute)
 
 
+def stream_for_each(stream, proc):
+    if stream.empty:
+        return
+    proc(stream.first)
+    return stream_for_each(stream.next, proc)
+
 
 def stream_map(stream: Stream, proc: Callable) -> Stream:
     if stream.empty:
@@ -88,12 +120,6 @@ def stream_filter(stream: Stream, proc: Callable) -> Stream:
     return compute()
 
 
-# def stream_iterall(stream: Stream) -> Stream:
-#     if stream.empty:
-#         return stream
-#     def com
-
-
 def stream_reduce(stream: Stream, proc: Callable) -> Any:
     if stream.empty:
         return stream
@@ -106,13 +132,19 @@ def stream_reduce_help(stream: Stream, proc: Callable, ret: Any) -> Any:
     return stream_reduce_help(stream.next, proc, proc(ret, stream.first))
 
 
-b = make_enum_int(0, 2)
-# print(stream_ref(a(), 5))
-# x = make_int_stream()
-# print(stream_ref(x, 5))
+# b = make_enum_int(0, 2)
+x = make_int_stream()
+print(stream_ref(x, 10))
+print(stream_ref(x, 10))
+for i in range(10):
+    x = x.next
+    print(x)
+
+# batch_x = batch_make_int_stream(0, 10)
+# print(stream_ref(batch_x, 20))
 # print(stream_ref(b, 155))
-# print(stream_ref(b, 155))
-y = stream_reduce(b, operator.add)
-print(y)
+# y = stream_reduce(b, operator.add)
+# print(y)
+# stream_for_each(b, print)
 # x = stream_filter(b, lambda i: i>50)
 # print(x.first)
