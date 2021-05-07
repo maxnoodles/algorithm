@@ -21,8 +21,8 @@ class Node:
             h += ''.join(sorted(self.child.keys()))
         return h
 
-    def mini_node(self, next_index):
-        return [self.value, self.index, self.fina, next_index]
+    def mini_node(self, next):
+        return [self.index, self.fina, next if not self.fina else 0]
 
 
 @dataclass
@@ -77,25 +77,32 @@ class Builder:
     def mini_list(self):
         mini = []
         # bsf
-        # queue = [self.root]
-        # while queue:
-        #     cur = queue.pop(0)
-        #     if not cur.use:
-        #         mini.append(cur.mini_node())
-        #         cur.use = True
-        #     if cur.child:
-        #         for k, v in cur.child.items():
-        #             queue.append(v)
-        cur = self.root
+        # count = (len(self.root.child))+1
+        # queue = []
+        # if self.root.child:
+        #     mini.append(self.root.mini_node(0))
+        #     for k, v in self.root.child.items():
+        #         queue.append(v)
+        count = 1
+        queue = [self.root]
+        while queue:
+            cur = queue.pop(0)
+            if cur.child:
+                for k, v in cur.child.items():
+                    queue.append(v)
+            if not cur.use:
+                mini.append(cur.mini_node(count))
+                cur.use = True
+                count += len([cur.child])
 
-        def help_mini(node):
-            for k, v in node.child.items():
-                if not v.use:
-                    mini.append(v.mini_node(k))
-                    v.use = True
-                help_mini(v)
-
-        help_mini(cur)
+        # cur = self.root
+        # def help_mini(node):
+        #     for k, v in node.child.items():
+        #         if not v.use:
+        #             mini.append(v.mini_node(k))
+        #             v.use = True
+        #         help_mini(v)
+        # help_mini(cur)
         return mini
 
 
@@ -114,5 +121,5 @@ if __name__ == '__main__':
     print(f)
     # print('abc' in f)
     # print('bgcf' in f)
-    for i in f.mini_list():
-        print(i)
+    for e, i in enumerate(f.mini_list()):
+        print(e, i)
