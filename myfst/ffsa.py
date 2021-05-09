@@ -1,53 +1,61 @@
 from dataclasses import dataclass, field
-import sys
-import cProfile
 
 hash_pool = dict()
 
 
 @dataclass
 class Node:
-    value: int
+    id: int = 0
+    char: str = ''
+    value: int = 0
     child: dict = field(default_factory=dict)
-    last_child: str = None
-    fina: int = 0
-    use: int = 0
-    index: str = ''
+    final: int = 0
+    encoded: int = 0
+    freeze: int = 0
 
     def node_hash(self):
-        h = "1" if self.fina else "0"
-        h += self.index
+        h = "1" if self.final else "0"
+        h += self.char
         if self.child:
             h += ''.join(sorted(self.child.keys()))
         return h
 
-    def mini_node(self, next):
-        return [self.index, self.fina, next if not self.fina else 0]
+    def mini_node(self, next, ):
+        return [self.char, len(self.child), self.final, next if not self.final else 0, ]
 
 
 @dataclass
 class Builder:
     last_val: str = None
-    id: int = 0
+    id: int = 1
     root: Node = Node(0)
     size: int = 0
 
-    def add(self, val):
+    def add(self, word, val=0):
         cur = self.root
         last_state = None
-        for v in val:
-            if v not in cur.child:
+        com = 0
+        for w in word:
+            if w not in cur.child:
                 if not last_state:
                     last_state = cur
+                    print(last_state)
+                    last_state.value = cur.value - com
                     self.replace(last_state)
+                cur.child[w] = Node(self.id, w, val)
                 self.id += 1
-                cur.child[v] = Node(value=self.id, index=v)
-            cur = cur.child[v]
-        cur.fina = 1
+            else:
+                com = min(cur.value, val)
+                cur.value = com
+                val = val - com
+            cur = cur.child[w]
+        cur.final = 1
         self.size += 1
 
     def replace(self, last_state: Node):
         for k, v in last_state.child.items():
+            if v.freeze:
+                continue
             if v.child:
                 self.replace(v)
             if (h := v.node_hash()) in hash_pool:
@@ -55,6 +63,7 @@ class Builder:
                 self.id -= 1
             else:
                 hash_pool[h] = v
+            v.freeze = True
 
     def __str__(self):
         if self.root.child:
@@ -63,7 +72,7 @@ class Builder:
 
     def __contains__(self, val):
         ret = self.traverse(val)
-        return ret is not None and ret.fina
+        return ret is not None and ret.final
 
     def traverse(self, val):
         cur = self.root
@@ -76,50 +85,80 @@ class Builder:
 
     def mini_list(self):
         mini = []
-        # bsf
-        # count = (len(self.root.child))+1
-        # queue = []
-        # if self.root.child:
-        #     mini.append(self.root.mini_node(0))
-        #     for k, v in self.root.child.items():
-        #         queue.append(v)
         count = 1
         queue = [self.root]
         while queue:
             cur = queue.pop(0)
             if cur.child:
                 for k, v in cur.child.items():
-                    queue.append(v)
-            if not cur.use:
-                mini.append(cur.mini_node(count))
-                cur.use = True
-                count += len([cur.child])
+                    if not v.encoded:
+                        queue.append(v)
+                        v.encoded = True
+                    else:
+                        count -= 1
+            mini.append(cur.mini_node(count))
+            count += len(cur.child)
 
-        # cur = self.root
-        # def help_mini(node):
-        #     for k, v in node.child.items():
-        #         if not v.use:
-        #             mini.append(v.mini_node(k))
-        #             v.use = True
-        #         help_mini(v)
-        # help_mini(cur)
         return mini
 
 
 def help_str(node, t=0):
     for i, v in node.child.items():
-        print(f"{'    ' * t}{i}{v.value}-{v.fina} -->", end='\n')
+        print(f"{'    ' * t}{i}{v.value}-{v.final} -->", end='\n')
         help_str(v, t + 1)
+
+
+
+@dataclass
+class MiniNode:
+    value: int = 0
+    final: int = 0
+    child: dict = field(default_factory=dict)
+
+
+class MiniTree:
+    root: MiniNode = MiniNode()
+
+    def decode(self, mini_arr):
+        return decode_help(self.root, mini_arr, 0)
+
+    def __str__(self):
+        if self.root.child:
+            help_str(self.root)
+        return ''
+
+def decode_help(node, mini_arr, mini_index):
+    key, child_num, fina, next_index = mini_arr[mini_index]
+    if child_num == 0:
+        child_num += 1
+    for i in range(0, child_num):
+        c_key, _, c_fina, c_next_index = mini_arr[next_index+i]
+        node.child[c_key] = MiniNode(final=c_fina)
+        if c_fina == 1:
+            continue
+        decode_help(node.child[c_key], mini_arr, next_index+i)
+
+
+def mini_tree(mini_arr):
+    t = MiniTree()
+    t.decode(mini_arr)
+    print(t)
+
+
+
 
 
 if __name__ == '__main__':
     f = Builder()
     s_list = sorted(['abcd', 'bbcd', 'bfce', 'bgce', 'bgcf'])
     # s_list = sorted(["CGCGAAA", 'CGCGATA', 'CGGAAA', 'CGGATA', 'GGATA', "AATA"])
-    for i in s_list:
-        f.add(i)
-    print(f)
+    for i, v in enumerate(s_list):
+        f.add(v, i+10)
+    print(f, f.id)
     # print('abc' in f)
     # print('bgcf' in f)
-    for e, i in enumerate(f.mini_list()):
+    mini_list = f.mini_list()
+    for e, i in enumerate(mini_list):
         print(e, i)
+    m = mini_tree(mini_list)
+    print(m)
