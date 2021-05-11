@@ -34,20 +34,24 @@ class Builder:
     def add(self, word, val=0):
         cur = self.root
         last_state = None
-        com = 0
         for w in word:
             if w not in cur.child:
                 if not last_state:
                     last_state = cur
                     print(last_state)
-                    last_state.value = cur.value - com
                     self.replace(last_state)
                 cur.child[w] = Node(self.id, w, val)
+                val = 0
                 self.id += 1
             else:
-                com = min(cur.value, val)
-                cur.value = com
-                val = val - com
+                com = min(cur.child[w].value, val)
+                node = cur.child[w]
+                if val < node.value and val:
+                    for v in node.child.values():
+                        v.value = node.value - com
+                    node.value = com
+                else:
+                    val = val - com
             cur = cur.child[w]
         cur.final = 1
         self.size += 1
@@ -127,6 +131,7 @@ class MiniTree:
             help_str(self.root)
         return ''
 
+
 def decode_help(node, mini_arr, mini_index):
     key, child_num, fina, next_index = mini_arr[mini_index]
     if child_num == 0:
@@ -145,20 +150,18 @@ def mini_tree(mini_arr):
     print(t)
 
 
-
-
-
 if __name__ == '__main__':
     f = Builder()
     s_list = sorted(['abcd', 'bbcd', 'bfce', 'bgce', 'bgcf'])
+    value = [20, 10, 5, 2, 1]
     # s_list = sorted(["CGCGAAA", 'CGCGATA', 'CGGAAA', 'CGGATA', 'GGATA', "AATA"])
     for i, v in enumerate(s_list):
-        f.add(v, i+10)
+        f.add(v, value[i])
     print(f, f.id)
     # print('abc' in f)
     # print('bgcf' in f)
-    mini_list = f.mini_list()
-    for e, i in enumerate(mini_list):
-        print(e, i)
-    m = mini_tree(mini_list)
-    print(m)
+    # mini_list = f.mini_list()
+    # for e, i in enumerate(mini_list):
+    #     print(e, i)
+    # m = mini_tree(mini_list)
+    # print(m)
