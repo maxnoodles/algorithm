@@ -1,6 +1,37 @@
+from collections import UserDict
 from dataclasses import dataclass, field
 
 hash_pool = dict()
+
+
+# def se(s, v):
+#     return f'{s}_{v}'
+#
+# def get_s(se):
+#     return se.split('_')[0]
+
+# @dataclass
+# class Edge:
+#     _dict: dict = field(default_factory=dict)
+#     val: int = 0
+#
+#     def __contains__(self, item):
+#         return item in self._dict
+#
+#     def __getitem__(self, item):
+#         return self._dict[item]
+#
+#     def __setitem__(self, key, value):
+#         self._dict[key] = value
+#
+#     def values(self):
+#         return self._dict.values()
+#
+#     def keys(self):
+#         return self._dict.keys()
+#
+#     def items(self):
+#         return self._dict.items()
 
 
 @dataclass
@@ -23,6 +54,10 @@ class Node:
     def mini_node(self, next, ):
         return [self.char, len(self.child), self.final, next if not self.final else 0, ]
 
+def u(w, id):
+    return f'{w}_{id}'
+
+edge_map = dict()
 
 @dataclass
 class Builder:
@@ -41,15 +76,17 @@ class Builder:
                     print(last_state)
                     self.replace(last_state)
                 cur.child[w] = Node(self.id, w, val)
+                edge_map[u(w, cur.id)] = val
                 val = 0
                 self.id += 1
             else:
-                com = min(cur.child[w].value, val)
                 node = cur.child[w]
-                if val < node.value and val:
-                    for v in node.child.values():
-                        v.value = node.value - com
-                    node.value = com
+                edge_val = edge_map[u(w, cur.id)]
+                com = min(edge_val, val)
+                if val < edge_val and val:
+                    for k in node.child.keys():
+                        edge_map[u(k, node.id)] = edge_val - com
+                    edge_map[u(w, cur.id)] = com
                 else:
                     val = val - com
             cur = cur.child[w]
@@ -108,7 +145,7 @@ class Builder:
 
 def help_str(node, t=0):
     for i, v in node.child.items():
-        print(f"{'    ' * t}{i}{v.value}-{v.final} -->", end='\n')
+        print(f"{'    ' * t}{i}{v.id}-{edge_map[u(i, node.id)]}-{v.final} -->", end='\n')
         help_str(v, t + 1)
 
 
@@ -157,7 +194,8 @@ if __name__ == '__main__':
     # s_list = sorted(["CGCGAAA", 'CGCGATA', 'CGGAAA', 'CGGATA', 'GGATA', "AATA"])
     for i, v in enumerate(s_list):
         f.add(v, value[i])
-    print(f, f.id)
+    print(f)
+    print(edge_map)
     # print('abc' in f)
     # print('bgcf' in f)
     # mini_list = f.mini_list()
