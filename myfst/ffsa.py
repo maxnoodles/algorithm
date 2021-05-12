@@ -1,48 +1,22 @@
-from collections import UserDict
 from dataclasses import dataclass, field
 
 hash_pool = dict()
+# edge_map = dict()
 
 
-# def se(s, v):
-#     return f'{s}_{v}'
-#
-# def get_s(se):
-#     return se.split('_')[0]
-
-# @dataclass
-# class Edge:
-#     _dict: dict = field(default_factory=dict)
-#     val: int = 0
-#
-#     def __contains__(self, item):
-#         return item in self._dict
-#
-#     def __getitem__(self, item):
-#         return self._dict[item]
-#
-#     def __setitem__(self, key, value):
-#         self._dict[key] = value
-#
-#     def values(self):
-#         return self._dict.values()
-#
-#     def keys(self):
-#         return self._dict.keys()
-#
-#     def items(self):
-#         return self._dict.items()
+def u(w, id):
+    return f'{w}_{id}'
 
 
 @dataclass
 class Node:
     id: int = 0
     char: str = ''
-    value: int = 0
     child: dict = field(default_factory=dict)
     final: int = 0
     encoded: int = 0
     freeze: int = 0
+    edge: dict = field(default_factory=dict)
 
     def node_hash(self):
         h = "1" if self.final else "0"
@@ -51,13 +25,9 @@ class Node:
             h += ''.join(sorted(self.child.keys()))
         return h
 
-    def mini_node(self, next, ):
-        return [self.char, len(self.child), self.final, next if not self.final else 0, ]
+    def mini_node(self, next, edge):
+        return [self.char, self.id,  edge, len(self.child), self.final, next if not self.final else 0]
 
-def u(w, id):
-    return f'{w}_{id}'
-
-edge_map = dict()
 
 @dataclass
 class Builder:
@@ -66,29 +36,27 @@ class Builder:
     root: Node = Node(0)
     size: int = 0
 
-    def add(self, word, val=0):
+    def __setitem__(self, word, val=0):
         cur = self.root
         last_state = None
         for w in word:
             if w not in cur.child:
                 if not last_state:
                     last_state = cur
-                    print(last_state)
                     self.replace(last_state)
-                cur.child[w] = Node(self.id, w, val)
-                edge_map[u(w, cur.id)] = val
+                cur.child[w] = Node(self.id, w)
+                cur.edge[w] = val
                 val = 0
                 self.id += 1
             else:
                 node = cur.child[w]
-                edge_val = edge_map[u(w, cur.id)]
+                edge_val = cur.edge[w]
                 com = min(edge_val, val)
-                if val < edge_val and val:
+                if val < edge_val:
                     for k in node.child.keys():
-                        edge_map[u(k, node.id)] = edge_val - com
-                    edge_map[u(w, cur.id)] = com
-                else:
-                    val = val - com
+                        node.edge[k] += edge_val - com
+                    cur.edge[w] = com
+                val = val - com
             cur = cur.child[w]
         cur.final = 1
         self.size += 1
@@ -111,18 +79,24 @@ class Builder:
             help_str(self.root)
         return ''
 
-    def __contains__(self, val):
-        ret = self.traverse(val)
+    def __contains__(self, item):
+        ret, val = self.traverse(item)
         return ret is not None and ret.final
 
-    def traverse(self, val):
+    def __getitem__(self, item):
+        ret, val = self.traverse(item)
+        return val
+
+    def traverse(self, item):
         cur = self.root
-        for i in val:
+        val = 0
+        for i in item:
             if x := cur.child.get(i):
+                val += cur.edge[i]
                 cur = x
             else:
-                return None
-        return cur
+                return None, None
+        return cur, val
 
     def mini_list(self):
         mini = []
@@ -137,7 +111,6 @@ class Builder:
                         v.encoded = True
                     else:
                         count -= 1
-            mini.append(cur.mini_node(count))
             count += len(cur.child)
 
         return mini
@@ -145,9 +118,8 @@ class Builder:
 
 def help_str(node, t=0):
     for i, v in node.child.items():
-        print(f"{'    ' * t}{i}{v.id}-{edge_map[u(i, node.id)]}-{v.final} -->", end='\n')
+        print(f"{'    ' * t}{i}{v.id}-{node.edge[i]}-{v.final} -->", end='\n')
         help_str(v, t + 1)
-
 
 
 @dataclass
@@ -191,15 +163,14 @@ if __name__ == '__main__':
     f = Builder()
     s_list = sorted(['abcd', 'bbcd', 'bfce', 'bgce', 'bgcf'])
     value = [20, 10, 5, 2, 1]
-    # s_list = sorted(["CGCGAAA", 'CGCGATA', 'CGGAAA', 'CGGATA', 'GGATA', "AATA"])
     for i, v in enumerate(s_list):
-        f.add(v, value[i])
+        f[v] = value[i]
     print(f)
-    print(edge_map)
+    print(f['bfce'])
     # print('abc' in f)
     # print('bgcf' in f)
-    # mini_list = f.mini_list()
-    # for e, i in enumerate(mini_list):
-    #     print(e, i)
+    mini_list = f.mini_list()
+    for e, i in enumerate(mini_list):
+        print(e, i)
     # m = mini_tree(mini_list)
     # print(m)
