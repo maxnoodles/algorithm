@@ -22,10 +22,39 @@ class Node:
 
 
 @dataclass
-class Builder:
+class fst:
+    root = None
+
+    def __str__(self):
+        if self.root.child:
+            help_str(self.root)
+        return ''
+
+    def __contains__(self, item):
+        ret, val = self.traverse(item)
+        return ret is not None and ret.final
+
+    def __getitem__(self, item):
+        ret, val = self.traverse(item)
+        return val
+
+    def traverse(self, item):
+        cur = self.root
+        val = 0
+        for i in item:
+            if x := cur.child.get(i):
+                val += cur.edge[i]
+                cur = x
+            else:
+                return None, None
+        return cur, val
+
+
+@dataclass
+class Builder(fst):
     last_val: str = None
     id: int = 1
-    root: Node = Node(0)
+    root: Node = Node()
     size: int = 0
     next: int = 0
 
@@ -68,29 +97,7 @@ class Builder:
                 hash_pool[h] = v
             v.freeze = True
 
-    def __str__(self):
-        if self.root.child:
-            help_str(self.root)
-        return ''
 
-    def __contains__(self, item):
-        ret, val = self.traverse(item)
-        return ret is not None and ret.final
-
-    def __getitem__(self, item):
-        ret, val = self.traverse(item)
-        return val
-
-    def traverse(self, item):
-        cur = self.root
-        val = 0
-        for i in item:
-            if x := cur.child.get(i):
-                val += cur.edge[i]
-                cur = x
-            else:
-                return None, None
-        return cur, val
 
     def mini_list(self):
         mini = []
@@ -135,7 +142,7 @@ def help_str(node, t=0):
 
 
 @dataclass
-class MiniNode:
+class MiniNode(fst):
     value: int = 0
     final: int = 0
     child: dict = field(default_factory=dict)
