@@ -153,39 +153,39 @@ class MiniTree:
     root: MiniNode = MiniNode()
 
     def decode(self, mini_arr):
-        return decode_help(self.root, mini_arr, 0, True)
+        self.decode_help(self.root, mini_arr, 0, True)
 
     def __str__(self):
         if self.root.child:
             help_str(self.root)
         return ''
 
-
-def decode_help(node, mini_arr, mini_index, first):
-    if not first and mini_index == 0:
-        return
-    for mini in mini_arr[mini_index:]:
-        key, last_edge, edge_value, next_index = mini
-        node.child[key] = MiniNode(final=0 if next_index else 1)
-        node.edge[key] = edge_value
-        if next_index == 0 and last_edge == 1:
-            break
-        decode_help(node.child[key], mini_arr, next_index, False)
-        if last_edge == 1:
-            break
+    def decode_help(self, node, mini_arr, mini_index, first):
+        if not first and mini_index == 0:
+            return
+        for mini in mini_arr[mini_index:]:
+            key, last_edge, edge_value, next_index = mini
+            node.child[key] = MiniNode(final=0 if next_index else 1)
+            node.edge[key] = edge_value
+            if next_index == 0 and last_edge == 1:
+                break
+            self.decode_help(node.child[key], mini_arr, next_index, False)
+            if last_edge == 1:
+                break
 
 
 def mini_tree(mini_arr):
     t = MiniTree()
     t.decode(mini_arr)
     print(t)
+    return t
 
 
 if __name__ == '__main__':
     f = Builder()
-    s_list = sorted(['abcd', 'bbcd', 'bfce', 'bgce', 'bgcf'])
+    s_list = sorted(['abcd', 'bbcd', 'bfce', 'bgce', 'bgcf', "bcd"])
     # s_list = ['bbcd', 'abcd', 'bfce', 'bgce', 'bgcf']
-    value = [20, 10, 5, 2, 1]
+    value = [20, 10, 5, 2, 1, 7]
     for i, v in enumerate(s_list):
         f[v] = value[i]
     print(f)
@@ -197,4 +197,3 @@ if __name__ == '__main__':
         print(e, i)
     f.to_file()
     m = mini_tree(mini_list)
-    print(m)
