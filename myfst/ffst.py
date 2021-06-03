@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
+from queue import SimpleQueue
 
 hash_pool = dict()
 
 
 @dataclass
 class Node:
-    id: int = 0
+    key_id: int = 0
     char: str = ''
     child: dict = field(default_factory=dict)
     final: int = 0
@@ -22,8 +23,9 @@ class Node:
 
 
 @dataclass
-class fst:
+class FST:
     root = None
+    mini = []
 
     def __str__(self):
         if self.root.child:
@@ -51,7 +53,7 @@ class fst:
 
 
 @dataclass
-class Builder(fst):
+class Builder(FST):
     last_val: str = None
     id: int = 1
     root: Node = Node()
@@ -97,37 +99,22 @@ class Builder(fst):
                 hash_pool[h] = v
             v.freeze = True
 
-
+    def mini_list_dfs(self, node):
+        if not node.encoded:
+            last_key = list(node.child.keys())[-1] if node.child else None
+            for k, v in node.child.items():
+                last_edge = 0
+                if last_key == k:
+                    last_edge = 1
+                data = [k, node.edge[k], v.key_id, v.final, last_edge]
+                self.mini.append(data)
+                node.encoded = 1
+                self.mini_list_dfs(v)
 
     def mini_list(self):
-        mini = []
-        count = 0
-        queue = [self.root]
-        node_set = set()
-        node_set.add(self.root.node_hash())
-        count += len(self.root.child)
-        while queue:
-            # print(node_set)
-            cur = queue.pop(0)
-            node_set.remove(cur.node_hash())
-            if cur.child:
-                keys = list(cur.child.keys())
-                last_edge = 0
-                for k, v in cur.child.items():
-                    # 相同的边子节点一样
-                    if v.node_hash() in node_set:
-                        count -= 1
-                    else:
-                        queue.append(v)
-                    if k == keys[-1]:
-                        last_edge = 1
-                    yield [k, last_edge, cur.edge[k], count if not v.final else 0]
-                    node_set.add(v.node_hash())
-                    count += 1
-                count += len(v.child)
-                # 减去每个节点最后一条边
-                count -= 1
-        return mini
+        self.mini_list_dfs(self.root)
+        return self.mini
+
 
     def to_file(self):
         with open('mini.txt', 'w+', encoding='utf8') as f:
@@ -137,41 +124,46 @@ class Builder(fst):
 
 def help_str(node, t=0):
     for i, v in node.child.items():
-        print(f"{'    ' * t}{i}{getattr(v, 'id', '')}-{node.edge[i]}-{v.final} -->", end='\n')
+        print(f"{'    ' * t}{i}{getattr(v, 'key_id', '')}-{node.edge[i]}-{v.final} -->", end='\n')
         help_str(v, t + 1)
 
 
 @dataclass
-class MiniNode(fst):
-    value: int = 0
+class MiniNode:
+    key_id: int = 0
     final: int = 0
     child: dict = field(default_factory=dict)
     edge: dict = field(default_factory=dict)
 
 
-class MiniTree:
+class MiniTree(FST):
     root: MiniNode = MiniNode()
+    node_pool = dict()
 
     def decode(self, mini_arr):
-        self.decode_help(self.root, mini_arr, 0, True)
+        mini_queue = SimpleQueue()
+        for i in mini_arr:
+            mini_queue.put(i)
+        self.decode_help(self.root, mini_queue)
 
-    def __str__(self):
-        if self.root.child:
-            help_str(self.root)
-        return ''
-
-    def decode_help(self, node, mini_arr, mini_index, first):
-        if not first and mini_index == 0:
+    def decode_help(self, node, queue):
+        if queue.empty():
             return
-        for mini in mini_arr[mini_index:]:
-            key, last_edge, edge_value, next_index = mini
-            node.child[key] = MiniNode(final=0 if next_index else 1)
+        key, edge_value, key_id, final, last_edge = queue.get()
+        if key_id in self.node_pool:
+            child_node = self.node_pool[key_id]
+            node.child[key] = child_node
             node.edge[key] = edge_value
-            if next_index == 0 and last_edge == 1:
-                break
-            self.decode_help(node.child[key], mini_arr, next_index, False)
-            if last_edge == 1:
-                break
+        else:
+            child_node = MiniNode(key_id, final)
+            self.node_pool[key_id] = child_node
+            node.child[key] = child_node
+            node.edge[key] = edge_value
+            if final:
+                return
+            self.decode_help(child_node, queue)
+        if not last_edge:
+            self.decode_help(node, queue)
 
 
 def mini_tree(mini_arr):
@@ -185,9 +177,9 @@ if __name__ == '__main__':
     f = Builder()
     s_list = sorted(['abcd', 'bbcd', 'bfce', 'bgce', 'bgcf', "bcd"])
     # s_list = ['bbcd', 'abcd', 'bfce', 'bgce', 'bgcf']
-    value = [20, 10, 5, 2, 1, 7]
+    key_id = [20, 10, 5, 2, 1, 7]
     for i, v in enumerate(s_list):
-        f[v] = value[i]
+        f[v] = key_id[i]
     print(f)
     print(f['bfce'])
     # print('abc' in f)
@@ -195,5 +187,5 @@ if __name__ == '__main__':
     mini_list = list(f.mini_list())
     for e, i in enumerate(mini_list):
         print(e, i)
-    f.to_file()
+    # f.to_file()
     m = mini_tree(mini_list)
