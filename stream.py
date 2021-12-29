@@ -12,8 +12,6 @@ class Stream():
     empty: bool = False
     ret: Stream = None
     computed: bool = False
-    args: list = None
-    kwargs: dict = None
 
     @property
     def next(self) -> Stream:
@@ -42,13 +40,13 @@ def stream_ref(stream: Stream, n: int) -> Any:
     return stream_ref(stream.next, n - 1)
 
 
-
-def batch_make_int_stream(start: int=0, step: int=10):
+def batch_make_int_stream(start: int = 0, step: int = 10):
     ret = list(range(start, start + step))
-    def compute() -> Stream:
-        return batch_make_int_stream(start+step, step)
-    return Stream(ret, compute)
 
+    def compute() -> Stream:
+        return batch_make_int_stream(start + step, step)
+
+    return Stream(ret, compute)
 
 
 # def make_int_stream(start: int=0) -> Stream:
@@ -60,7 +58,7 @@ def batch_make_int_stream(start: int=0, step: int=10):
 #     return Stream(batch_stream.first.pop(0), compute)
 
 
-def make_int_stream(start: int=0) -> Stream:
+def make_int_stream(start: int = 0) -> Stream:
     batch_stream = batch_make_int_stream(start)
     return make_int_stream_help(batch_stream)
 
@@ -70,6 +68,7 @@ def make_int_stream_help(batch_stream) -> Stream:
         if batch_stream.first:
             return Stream(batch_stream.first.pop(0), compute)
         return make_int_stream_help(batch_stream.next)
+
     return Stream(batch_stream.first.pop(0), compute)
 
 
@@ -91,7 +90,8 @@ def make_enum_int(low: int, high: int) -> Stream:
         if low >= high:
             return Stream(low, compute, empty=True)
         else:
-            return make_enum_int(low+1, high)
+            return make_enum_int(low + 1, high)
+
     return Stream(low, compute)
 
 
@@ -105,16 +105,20 @@ def stream_for_each(stream, proc):
 def stream_map(stream: Stream, proc: Callable) -> Stream:
     if stream.empty:
         return stream
+
     def compute() -> Stream:
         return stream_map(stream.next, proc)
+
     return Stream(proc(stream.first), compute)
 
 
 def stream_filter(stream: Stream, proc: Callable) -> Stream:
     if stream.empty:
         return stream
+
     def compute() -> Stream:
         return stream_filter(stream.next, proc)
+
     if proc(stream.first):
         return Stream(stream.first, compute)
     return compute()
