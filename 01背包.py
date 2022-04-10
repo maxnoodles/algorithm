@@ -80,9 +80,31 @@ def dp_knapsack_01(w, v, c):
     return memo[-1]
 
 
+def dp_knapsack_02(ws, v, c):
+    n = len(ws)
+    dp = [[-1] * (c+1) for _ in range(n)]
+
+    # 初始化第一行
+    for w in range(c+1):
+        if w >= ws[0]:
+            dp[0][w] = v[0]
+
+
+    for i in range(1, n):
+        for j in range(c+1):
+            if j >= ws[i]:
+                dp[i][j] = max(dp[i-1][j], dp[i-1][j - ws[i]] + v[i])
+            else:
+                dp[i][j] = dp[i-1][j]
+    return dp[n-1][c]
+
+
+
+
 ww = [2, 2, 6, 5, 4]
 vv = [6, 3, 5, 4, 6]
 cc = 10
 r = knapsack_01(ww, vv, cc)
-r2 = dp_knapsack_01(ww, vv, cc)
-print(r, r2)
+r2 = dp_knapsack_02(ww, vv, cc)
+r3 = dp_knapsack_01(ww, vv, cc)
+print(r, r2, r3)
